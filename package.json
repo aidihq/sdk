@@ -1,0 +1,22 @@
+{
+  "name": "aidi-sdk",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.3",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "node -e \"require('node:fs').rmSync('.turbo',{recursive:true,force:true})\" && turbo run clean",
+    "release:check": "pnpm --filter @aidi/node release:check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.2"
+  }
+}
