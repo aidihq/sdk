@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aidi-sdk/aidi-sdk.git"
+    "url": "git+https://gitlab.com/smart-aidi/sdk.git"
   },
-  "homepage": "https://github.com/aidi-sdk/aidi-sdk#readme",
+  "homepage": "https://gitlab.com/smart-aidi/sdk",
   "bugs": {
-    "url": "https://github.com/aidi-sdk/aidi-sdk/issues"
+    "url": "https://gitlab.com/smart-aidi/sdk/-/issues"
   },
   "keywords": [
     "aidi",
