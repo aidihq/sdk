@@ -7,6 +7,8 @@ import type {
   CreateVerificationResponse,
   RequestedData,
   RequestedFields,
+  VerificationLoginExchangeResponse,
+  VerificationResultResponse,
   VerificationStatusResponse
 } from "../types";
 
@@ -46,6 +48,29 @@ export class VerificationsResource {
       `/verification/${encodeURIComponent(verificationId)}/status`
     );
   }
+
+  getResult(verificationId: string): Promise<VerificationResultResponse> {
+    return this.httpClient.request<VerificationResultResponse>(
+      `/verification/${encodeURIComponent(verificationId)}/result`
+    );
+  }
+
+  exchangeLogin(
+    verificationId: string,
+    exchangeToken: string
+  ): Promise<VerificationLoginExchangeResponse> {
+    if (!exchangeToken.trim()) {
+      throw new AidiError("AIDI exchangeToken is required for login exchange.");
+    }
+
+    return this.httpClient.request<VerificationLoginExchangeResponse>(
+      `/verification/${encodeURIComponent(verificationId)}/login/exchange`,
+      {
+        method: "POST",
+        body: { exchangeToken }
+      }
+    );
+  }
 }
 
 function normalizeCreateVerificationInput(
@@ -55,16 +80,18 @@ function normalizeCreateVerificationInput(
     throw new AidiError("AIDI requestedFields must be an array.");
   }
 
-  if (input.requestedFields.length === 0) {
-    throw new AidiError("AIDI requestedFields must include at least one field.");
-  }
-
   const baseRequest = {
     type: input.type ?? "IDENTITY_VERIFY",
-    requestedData: buildRequestedData(input.requestedFields)
+    requestedData: buildRequestedData(input.requestedFields),
+    intent: input.intent ?? "VERIFY",
+    message: input.message
   };
 
   if (input.flowMode === "DIRECT") {
+    if (baseRequest.intent === "LOGIN") {
+      throw new AidiError("AIDI LOGIN intent only supports QR flow.");
+    }
+
     if (
       typeof input.targetIdentifier !== "string" ||
       !input.targetIdentifier.trim()
@@ -83,7 +110,9 @@ function normalizeCreateVerificationInput(
 
   return {
     ...baseRequest,
-    flowMode: "QR"
+    flowMode: "QR",
+    redirectUrl: input.redirectUrl,
+    state: input.state
   };
 }
 

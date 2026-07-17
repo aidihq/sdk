@@ -13,6 +13,9 @@ export type {
   CreateVerificationInput,
   CreateVerificationRequest,
   CreateVerificationResponse,
+  VerificationIntent,
+  VerificationLoginExchangeResponse,
+  VerificationResultResponse,
   VerificationFlowMode,
   VerificationStatusResponse,
   VerificationType

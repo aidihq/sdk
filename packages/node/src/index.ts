@@ -14,6 +14,9 @@ export type {
   RequestedDataField,
   RequestedFields,
   RequestedFieldRequirement,
+  VerificationIntent,
+  VerificationLoginExchangeResponse,
+  VerificationResultResponse,
   VerificationFlowMode,
   VerificationStatusResponse,
   VerificationType

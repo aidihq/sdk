@@ -27,6 +27,8 @@ describe("verifications resource", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       type: "IDENTITY_VERIFY",
+      intent: "VERIFY",
+      message: undefined,
       flowMode: "QR",
       requestedData: {
         dni: "required",
@@ -77,6 +79,8 @@ describe("verifications resource", () => {
     const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(JSON.parse(String(init.body))).toEqual({
       type: "IDENTITY_VERIFY",
+      intent: "VERIFY",
+      message: undefined,
       flowMode: "DIRECT",
       targetIdentifier: "user_123",
       requestedData: {
@@ -104,6 +108,8 @@ describe("verifications resource", () => {
     const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(JSON.parse(String(init.body))).toEqual({
       type: "IDENTITY_VERIFY",
+      intent: "VERIFY",
+      message: undefined,
       flowMode: "QR",
       requestedData: {
         dni: "required",
@@ -120,6 +126,69 @@ describe("verifications resource", () => {
         requestedFields: ["dni", "passport"] as unknown as never
       })
     ).toThrow(AidiError);
+  });
+
+  it("allows verify requests without claims", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "ver_999", intent: "VERIFY" }), {
+        status: 200
+      })
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createAidiClient({ apiKey: "secret-key" });
+
+    await client.verifications.createQr({
+      requestedFields: []
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({
+      type: "IDENTITY_VERIFY",
+      intent: "VERIFY",
+      message: undefined,
+      flowMode: "QR",
+      requestedData: {}
+    });
+  });
+
+  it("rejects LOGIN intent for direct flows", () => {
+    const client = createAidiClient({ apiKey: "secret-key" });
+
+    expect(() =>
+      client.verifications.createDirect({
+        intent: "LOGIN",
+        targetIdentifier: "user_123",
+        requestedFields: []
+      })
+    ).toThrowError("AIDI LOGIN intent only supports QR flow.");
+  });
+
+  it("requests verification result and exchanges login", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "approved", result: { identityConfirmed: true, subjectId: "aidi_usr_123", assuranceLevel: "high" } }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ authenticated: true, subjectId: "aidi_usr_123" }), { status: 200 })
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createAidiClient({ apiKey: "secret-key" });
+
+    await client.verifications.getResult("ver_123");
+    await client.verifications.exchangeLogin("ver_123", "ver_123.hash");
+
+    const [resultUrl] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const [exchangeUrl, exchangeInit] = fetchMock.mock.calls[1] as [URL, RequestInit];
+    expect(resultUrl.toString()).toBe("https://api.aidi.com/verification/ver_123/result");
+    expect(exchangeUrl.toString()).toBe("https://api.aidi.com/verification/ver_123/login/exchange");
+    expect(JSON.parse(String(exchangeInit.body))).toEqual({
+      exchangeToken: "ver_123.hash"
+    });
   });
 
   it("rejects non-array requestedFields from untyped consumers", () => {

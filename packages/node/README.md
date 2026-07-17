@@ -6,7 +6,7 @@
 
 Official AIDI SDK for Node.js.
 
-`@aidi/node` provides a typed, server-side API for creating identity verifications and checking their status using native `fetch`.
+`@aidi/node` provides a typed, server-side API for creating AIDI Verify requests, checking their status, retrieving verify results, and exchanging login approvals using native `fetch`.
 
 ## Installation
 
@@ -24,7 +24,7 @@ const aidi = createAidiClient({
 });
 
 const verification = await aidi.verifications.createQr({
-  requestedFields: ["dni", "cuil", "firstName"]
+  requestedFields: []
 });
 
 console.log(verification.id);
@@ -32,6 +32,28 @@ console.log(verification.qrUrl);
 
 const status = await aidi.verifications.getStatus(verification.id);
 console.log(status);
+```
+
+## LOGIN Example
+
+```ts
+const login = await aidi.verifications.createQr({
+  intent: "LOGIN",
+  message: "Confirmá tu identidad para iniciar sesión",
+  requestedFields: ["cuil"],
+  redirectUrl: "https://empresa.com/auth/callback",
+  state: "abc123"
+});
+
+const status = await aidi.verifications.getStatus(login.id);
+
+if (status.exchangeReady && status.exchangeToken) {
+  const result = await aidi.verifications.exchangeLogin(
+    login.id,
+    status.exchangeToken
+  );
+  console.log(result);
+}
 ```
 
 ## Choose the Method
@@ -76,6 +98,8 @@ Internally, the SDK translates that input into the current HTTP payload shape.
 - `aidi.verifications.createQr({ requestedFields })`
 - `aidi.verifications.createDirect({ targetIdentifier, requestedFields })`
 - `aidi.verifications.getStatus(verificationId)`
+- `aidi.verifications.getResult(verificationId)`
+- `aidi.verifications.exchangeLogin(verificationId, exchangeToken)`
 
 ## Errors
 

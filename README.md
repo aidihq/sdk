@@ -24,7 +24,7 @@ Install dependencies in this repository:
 pnpm install
 ```
 
-Basic usage:
+Basic verify usage:
 
 ```ts
 import { createAidiClient } from "@aidi/node";
@@ -34,7 +34,7 @@ const aidi = createAidiClient({
 });
 
 const verification = await aidi.verifications.createQr({
-  requestedFields: ["dni", "cuil", "firstName"]
+  requestedFields: []
 });
 
 console.log(verification.id);
@@ -42,6 +42,28 @@ console.log(verification.qrUrl);
 
 const status = await aidi.verifications.getStatus(verification.id);
 console.log(status);
+```
+
+Login usage:
+
+```ts
+const login = await aidi.verifications.createQr({
+  intent: "LOGIN",
+  message: "Confirmá tu identidad para iniciar sesión",
+  requestedFields: ["cuil"],
+  redirectUrl: "https://empresa.com/auth/callback",
+  state: "abc123"
+});
+
+const loginStatus = await aidi.verifications.getStatus(login.id);
+
+if (loginStatus.exchangeReady && loginStatus.exchangeToken) {
+  const result = await aidi.verifications.exchangeLogin(
+    login.id,
+    loginStatus.exchangeToken
+  );
+  console.log(result);
+}
 ```
 
 Direct verification:
@@ -60,6 +82,8 @@ const verification = await aidi.verifications.createDirect({
 - `aidi.verifications.createQr({ requestedFields })`
 - `aidi.verifications.createDirect({ targetIdentifier, requestedFields })`
 - `aidi.verifications.getStatus(verificationId)`
+- `aidi.verifications.getResult(verificationId)`
+- `aidi.verifications.exchangeLogin(verificationId, exchangeToken)`
 
 ## Repository Layout
 
