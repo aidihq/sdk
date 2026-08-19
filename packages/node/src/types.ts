@@ -17,9 +17,6 @@ export type VerificationType = "IDENTITY_VERIFY";
 export type VerificationIntent = "VERIFY" | "AUTHENTICATE";
 export type VerificationInitiation = "TARGETED" | "USER_INITIATED";
 
-export type HttpVerificationIntent = "VERIFY" | "LOGIN";
-export type HttpVerificationFlowMode = "DIRECT" | "QR";
-
 interface BaseCreateVerificationInput {
   type?: VerificationType;
   requestedFields: RequestedFields;
@@ -62,9 +59,9 @@ export type CreateVerificationInput =
 export interface CreateVerificationHttpRequest {
   type: VerificationType;
   requestedData: RequestedData;
-  intent: HttpVerificationIntent;
+  intent: VerificationIntent;
   message?: string;
-  flowMode: HttpVerificationFlowMode;
+  initiation: VerificationInitiation;
   targetIdentifier?: string;
   redirectUrl?: string;
   state?: string;

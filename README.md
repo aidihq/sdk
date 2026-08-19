@@ -1,6 +1,6 @@
 # AIDI TypeScript SDK
 
-![Version](https://img.shields.io/badge/version-0.1.0-black)
+![Version](https://img.shields.io/badge/version-0.2.0-black)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-339933)
 ![Package](https://img.shields.io/badge/npm-%40aidi%2Fnode-CB3837)
 
@@ -14,7 +14,7 @@ This repository contains the publishable `@aidi/node` package, internal shared t
 - Clean server-side API built on native `fetch`
 - DX-first inputs with `requestedFields`
 - Internal HTTP client with centralized headers, timeouts, and typed errors
-- Monorepo ready for future packages without over-engineering v0.1.0
+- Monorepo ready for future packages without over-engineering the public API
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ const aidi = createAidiClient({
   apiKey: process.env.AIDI_COMPANY_API_KEY!
 });
 
-const verification = await aidi.verifications.createQr({
+const verification = await aidi.verifications.createUserInitiated({
   requestedFields: []
 });
 
@@ -44,32 +44,32 @@ const status = await aidi.verifications.getStatus(verification.id);
 console.log(status);
 ```
 
-Login usage:
+Authentication usage:
 
 ```ts
-const login = await aidi.verifications.createQr({
-  intent: "LOGIN",
+const authentication = await aidi.verifications.createUserInitiated({
+  intent: "AUTHENTICATE",
   message: "Confirmá tu identidad para iniciar sesión",
   requestedFields: ["cuil"],
   redirectUrl: "https://empresa.com/auth/callback",
   state: "abc123"
 });
 
-const loginStatus = await aidi.verifications.getStatus(login.id);
+const authenticationStatus = await aidi.verifications.getStatus(authentication.id);
 
-if (loginStatus.exchangeReady && loginStatus.exchangeToken) {
-  const result = await aidi.verifications.exchangeLogin(
-    login.id,
-    loginStatus.exchangeToken
+if (authenticationStatus.exchangeReady && authenticationStatus.exchangeToken) {
+  const result = await aidi.verifications.exchangeAuthentication(
+    authentication.id,
+    authenticationStatus.exchangeToken
   );
   console.log(result);
 }
 ```
 
-Direct verification:
+Targeted verification:
 
 ```ts
-const verification = await aidi.verifications.createDirect({
+const verification = await aidi.verifications.createTargeted({
   targetIdentifier: "bfcf1248-c1d0-4264-b8b8-e801c45ebed0",
   requestedFields: ["dni", "cuil", "firstName"]
 });
@@ -78,12 +78,16 @@ const verification = await aidi.verifications.createDirect({
 ## Public API
 
 - `createAidiClient({ apiKey })`
-- `aidi.verifications.create({ flowMode, requestedFields, ... })`
-- `aidi.verifications.createQr({ requestedFields })`
-- `aidi.verifications.createDirect({ targetIdentifier, requestedFields })`
+- `aidi.verifications.create({ initiation, intent, requestedFields, ... })`
+- `aidi.verifications.createUserInitiated({ intent, requestedFields, redirectUrl, state })`
+- `aidi.verifications.createTargeted({ targetIdentifier, requestedFields })`
 - `aidi.verifications.getStatus(verificationId)`
 - `aidi.verifications.getResult(verificationId)`
-- `aidi.verifications.exchangeLogin(verificationId, exchangeToken)`
+- `aidi.verifications.exchangeAuthentication(verificationId, exchangeToken)`
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history. Version `0.2.0` renames the verification API around `intent` and `initiation` and removes the old QR/DIRECT/LOGIN-facing helpers.
 
 ## Repository Layout
 
@@ -110,7 +114,7 @@ pnpm clean
 
 ### Node Example
 
-Create `examples/example-node/.env` from [examples/example-node/.env.example](C:/Users/ginos/Desktop/2026/AIDI/@aidi-sdk/examples/example-node/.env.example):
+Create `examples/example-node/.env` from `examples/example-node/.env.example`:
 
 ```env
 AIDI_COMPANY_API_KEY=your_company_api_key
@@ -122,11 +126,11 @@ Run it:
 pnpm --filter example-node dev
 ```
 
-This example creates a QR verification and then fetches its status.
+This example creates a user-initiated verification and then fetches its status.
 
 ### Next.js Example
 
-Create `examples/example-next/.env.local` from [examples/example-next/.env.local.example](C:/Users/ginos/Desktop/2026/AIDI/@aidi-sdk/examples/example-next/.env.local.example):
+Create `examples/example-next/.env.local` from `examples/example-next/.env.local.example`:
 
 ```env
 AIDI_COMPANY_API_KEY=your_company_api_key

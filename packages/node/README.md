@@ -1,6 +1,6 @@
 # @aidi/node
 
-![Version](https://img.shields.io/badge/version-0.1.0-black)
+![Version](https://img.shields.io/badge/version-0.2.0-black)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-339933)
 ![Runtime](https://img.shields.io/badge/runtime-server--side-1f6feb)
 
@@ -55,7 +55,7 @@ const authentication = await aidi.verifications.createUserInitiated({
   message: "Confirmá tu identidad para continuar",
   requestedFields: ["cuil"],
   redirectUrl: "https://empresa.com/auth/callback",
-  state: "login-attempt-id"
+  state: "auth-attempt-id"
 });
 
 const status = await aidi.verifications.getStatus(authentication.id);
@@ -111,6 +111,10 @@ Internally, the SDK translates `requestedFields` into the current AIDI HTTP payl
 - `aidi.verifications.getStatus(verificationId)`
 - `aidi.verifications.getResult(verificationId)`
 - `aidi.verifications.exchangeAuthentication(verificationId, exchangeToken)`
+
+## Version
+
+Version `0.2.0` aligns the SDK with the backend `intent`/`initiation` contract and removes the old QR/DIRECT/LOGIN-facing helpers. See the repository changelog for full version history.
 
 ## Errors
 

@@ -7,8 +7,6 @@ import type {
   RequestedData,
   RequestedFields,
   VerificationAuthenticationExchangeResponse,
-  VerificationInitiation,
-  VerificationIntent,
   VerificationResultResponse,
   VerificationStatusResponse
 } from "../types";
@@ -30,7 +28,7 @@ export class VerificationsResource {
       }
     );
 
-    return normalizeVerificationResponse(response);
+    return response as CreateVerificationResponse;
   }
 
   createUserInitiated(
@@ -56,7 +54,7 @@ export class VerificationsResource {
       `/verification/${encodeURIComponent(verificationId)}/status`
     );
 
-    return normalizeVerificationResponse(response);
+    return response as VerificationStatusResponse;
   }
 
   getResult(verificationId: string): Promise<VerificationResultResponse> {
@@ -76,7 +74,7 @@ export class VerificationsResource {
     }
 
     return this.httpClient.request<VerificationAuthenticationExchangeResponse>(
-      `/verification/${encodeURIComponent(verificationId)}/login/exchange`,
+      `/verification/${encodeURIComponent(verificationId)}/authentication/exchange`,
       {
         method: "POST",
         body: { exchangeToken }
@@ -95,7 +93,7 @@ function normalizeCreateVerificationInput(
   const baseRequest = {
     type: input.type ?? "IDENTITY_VERIFY",
     requestedData: buildRequestedData(input.requestedFields),
-    intent: toHttpIntent(input.intent ?? "VERIFY"),
+    intent: input.intent ?? "VERIFY",
     message: input.message
   };
 
@@ -117,56 +115,16 @@ function normalizeCreateVerificationInput(
 
     return {
       ...baseRequest,
-      flowMode: "DIRECT",
+      initiation: "TARGETED",
       targetIdentifier: input.targetIdentifier
     };
   }
 
   return {
     ...baseRequest,
-    flowMode: "QR",
+    initiation: "USER_INITIATED",
     redirectUrl: input.redirectUrl,
     state: input.state
-  };
-}
-
-function toHttpIntent(intent: VerificationIntent) {
-  return intent === "AUTHENTICATE" ? "LOGIN" : "VERIFY";
-}
-
-function fromHttpIntent(intent: unknown): VerificationIntent | undefined {
-  if (intent === "LOGIN") {
-    return "AUTHENTICATE";
-  }
-  if (intent === "VERIFY") {
-    return "VERIFY";
-  }
-  return undefined;
-}
-
-function fromHttpFlowMode(flowMode: unknown): VerificationInitiation | undefined {
-  if (flowMode === "DIRECT") {
-    return "TARGETED";
-  }
-  if (flowMode === "QR") {
-    return "USER_INITIATED";
-  }
-  return undefined;
-}
-
-function normalizeVerificationResponse<T extends Record<string, unknown>>(
-  response: T
-): T & {
-  intent?: VerificationIntent;
-  initiation?: VerificationInitiation;
-} {
-  const intent = fromHttpIntent(response.intent);
-  const initiation = fromHttpFlowMode(response.flowMode);
-
-  return {
-    ...response,
-    ...(intent ? { intent } : {}),
-    ...(initiation ? { initiation } : {})
   };
 }
 

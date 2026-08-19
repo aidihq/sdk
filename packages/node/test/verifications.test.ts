@@ -29,7 +29,7 @@ describe("verifications resource", () => {
       type: "IDENTITY_VERIFY",
       intent: "VERIFY",
       message: undefined,
-      flowMode: "QR",
+      initiation: "USER_INITIATED",
       requestedData: {
         dni: "required",
         cuil: "required",
@@ -46,8 +46,8 @@ describe("verifications resource", () => {
         JSON.stringify({
           id: "ver_123",
           status: "PENDING",
-          intent: "LOGIN",
-          flowMode: "QR"
+          intent: "AUTHENTICATE",
+          initiation: "USER_INITIATED"
         }),
         {
           status: 200
@@ -95,7 +95,7 @@ describe("verifications resource", () => {
       type: "IDENTITY_VERIFY",
       intent: "VERIFY",
       message: undefined,
-      flowMode: "DIRECT",
+      initiation: "TARGETED",
       targetIdentifier: "user_123",
       requestedData: {
         dni: "required",
@@ -124,7 +124,7 @@ describe("verifications resource", () => {
       type: "IDENTITY_VERIFY",
       intent: "VERIFY",
       message: undefined,
-      flowMode: "QR",
+      initiation: "USER_INITIATED",
       requestedData: {
         dni: "required",
         cuil: "required"
@@ -132,14 +132,14 @@ describe("verifications resource", () => {
     });
   });
 
-  it("rejects unsupported requested fields from untyped consumers", () => {
+  it("rejects unsupported requested fields from untyped consumers", async () => {
     const client = createAidiClient({ apiKey: "secret-key" });
 
-    expect(() =>
+    await expect(
       client.verifications.createUserInitiated({
         requestedFields: ["dni", "passport"] as unknown as never
       })
-    ).toThrow(AidiError);
+    ).rejects.toThrow(AidiError);
   });
 
   it("allows verify requests without claims", async () => {
@@ -162,32 +162,32 @@ describe("verifications resource", () => {
       type: "IDENTITY_VERIFY",
       intent: "VERIFY",
       message: undefined,
-      flowMode: "QR",
+      initiation: "USER_INITIATED",
       requestedData: {}
     });
   });
 
-  it("rejects AUTHENTICATE intent for targeted initiations", () => {
+  it("rejects AUTHENTICATE intent for targeted initiations", async () => {
     const client = createAidiClient({ apiKey: "secret-key" });
 
-    expect(() =>
+    await expect(
       client.verifications.createTargeted({
         intent: "AUTHENTICATE",
         targetIdentifier: "user_123",
         requestedFields: []
       })
-    ).toThrowError(
+    ).rejects.toThrowError(
       "AIDI AUTHENTICATE intent only supports USER_INITIATED initiation."
     );
   });
 
-  it("maps AUTHENTICATE user-initiated requests to LOGIN QR HTTP payloads", async () => {
+  it("creates AUTHENTICATE user-initiated requests with the public HTTP contract", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           id: "ver_auth",
-          intent: "LOGIN",
-          flowMode: "QR",
+          intent: "AUTHENTICATE",
+          initiation: "USER_INITIATED",
           qrUrl: "https://qr"
         }),
         {
@@ -204,7 +204,7 @@ describe("verifications resource", () => {
       intent: "AUTHENTICATE",
       requestedFields: ["cuil"],
       redirectUrl: "https://empresa.com/auth/callback",
-      state: "login-attempt-id"
+      state: "auth-attempt-id"
     });
 
     expect(response.intent).toBe("AUTHENTICATE");
@@ -213,11 +213,11 @@ describe("verifications resource", () => {
     const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(JSON.parse(String(init.body))).toEqual({
       type: "IDENTITY_VERIFY",
-      intent: "LOGIN",
+      intent: "AUTHENTICATE",
       message: undefined,
-      flowMode: "QR",
+      initiation: "USER_INITIATED",
       redirectUrl: "https://empresa.com/auth/callback",
-      state: "login-attempt-id",
+      state: "auth-attempt-id",
       requestedData: {
         cuil: "required"
       }
@@ -266,45 +266,45 @@ describe("verifications resource", () => {
       "https://api.aidi.com/verification/ver_123/result"
     );
     expect(exchangeUrl.toString()).toBe(
-      "https://api.aidi.com/verification/ver_123/login/exchange"
+      "https://api.aidi.com/verification/ver_123/authentication/exchange"
     );
     expect(JSON.parse(String(exchangeInit.body))).toEqual({
       exchangeToken: "ver_123.hash"
     });
   });
 
-  it("rejects non-array requestedFields from untyped consumers", () => {
+  it("rejects non-array requestedFields from untyped consumers", async () => {
     const client = createAidiClient({ apiKey: "secret-key" });
 
-    expect(() =>
+    await expect(
       client.verifications.create({
         initiation: "USER_INITIATED",
         requestedFields: "dni" as unknown as never
       })
-    ).toThrowError("AIDI requestedFields must be an array.");
+    ).rejects.toThrowError("AIDI requestedFields must be an array.");
   });
 
-  it("rejects blank target identifiers for TARGETED initiations", () => {
+  it("rejects blank target identifiers for TARGETED initiations", async () => {
     const client = createAidiClient({ apiKey: "secret-key" });
 
-    expect(() =>
+    await expect(
       client.verifications.createTargeted({
         targetIdentifier: "   ",
         requestedFields: ["dni"]
       })
-    ).toThrowError(
+    ).rejects.toThrowError(
       "AIDI targetIdentifier is required when initiation is TARGETED."
     );
   });
 
-  it("throws aidi errors for invalid direct inputs", () => {
+  it("throws aidi errors for invalid targeted inputs", async () => {
     const client = createAidiClient({ apiKey: "secret-key" });
 
-    expect(() =>
+    await expect(
       client.verifications.createTargeted({
         targetIdentifier: "   ",
         requestedFields: ["dni"]
       })
-    ).toThrowError(AidiError);
+    ).rejects.toThrowError(AidiError);
   });
 });

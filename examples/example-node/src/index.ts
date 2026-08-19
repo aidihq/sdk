@@ -11,7 +11,7 @@ if (!apiKey) {
 const aidi = createAidiClient({ apiKey });
 
 async function main(): Promise<void> {
-  const verification = await aidi.verifications.createQr({
+  const verification = await aidi.verifications.createUserInitiated({
     requestedFields: ["dni", "cuil", "firstName"]
   });
 
