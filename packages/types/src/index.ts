@@ -6,17 +6,14 @@ export type {
   RequestedFieldRequirement
 } from "./common";
 export type {
-  CreateVerificationDirectInput,
-  CreateDirectVerificationRequest,
-  CreateQrVerificationInput,
-  CreateQrVerificationRequest,
+  CreateTargetedVerificationInput,
+  CreateUserInitiatedVerificationInput,
   CreateVerificationInput,
-  CreateVerificationRequest,
   CreateVerificationResponse,
+  VerificationAuthenticationExchangeResponse,
+  VerificationInitiation,
   VerificationIntent,
-  VerificationLoginExchangeResponse,
   VerificationResultResponse,
-  VerificationFlowMode,
   VerificationStatusResponse,
   VerificationType
 } from "./verification";

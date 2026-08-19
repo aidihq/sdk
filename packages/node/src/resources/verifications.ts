@@ -1,13 +1,14 @@
 import type {
-  CreateDirectVerificationRequest,
-  CreateQrVerificationInput,
-  CreateQrVerificationRequest,
-  CreateVerificationDirectInput,
+  CreateTargetedVerificationInput,
+  CreateUserInitiatedVerificationInput,
+  CreateVerificationHttpRequest,
   CreateVerificationInput,
   CreateVerificationResponse,
   RequestedData,
   RequestedFields,
-  VerificationLoginExchangeResponse,
+  VerificationAuthenticationExchangeResponse,
+  VerificationInitiation,
+  VerificationIntent,
   VerificationResultResponse,
   VerificationStatusResponse
 } from "../types";
@@ -18,35 +19,44 @@ import type { HttpClient } from "../http/http-client";
 export class VerificationsResource {
   constructor(private readonly httpClient: HttpClient) {}
 
-  create(input: CreateVerificationInput): Promise<CreateVerificationResponse> {
-    return this.httpClient.request<CreateVerificationResponse>("/verification", {
-      method: "POST",
-      body: normalizeCreateVerificationInput(input)
-    });
+  async create(
+    input: CreateVerificationInput
+  ): Promise<CreateVerificationResponse> {
+    const response = await this.httpClient.request<Record<string, unknown>>(
+      "/verification",
+      {
+        method: "POST",
+        body: normalizeCreateVerificationInput(input)
+      }
+    );
+
+    return normalizeVerificationResponse(response);
   }
 
-  createQr(
-    input: Omit<CreateQrVerificationInput, "flowMode">
+  createUserInitiated(
+    input: Omit<CreateUserInitiatedVerificationInput, "initiation">
   ): Promise<CreateVerificationResponse> {
     return this.create({
       ...input,
-      flowMode: "QR"
+      initiation: "USER_INITIATED"
     });
   }
 
-  createDirect(
-    input: CreateVerificationDirectInput
+  createTargeted(
+    input: CreateTargetedVerificationInput
   ): Promise<CreateVerificationResponse> {
     return this.create({
       ...input,
-      flowMode: "DIRECT"
+      initiation: "TARGETED"
     });
   }
 
-  getStatus(verificationId: string): Promise<VerificationStatusResponse> {
-    return this.httpClient.request<VerificationStatusResponse>(
+  async getStatus(verificationId: string): Promise<VerificationStatusResponse> {
+    const response = await this.httpClient.request<Record<string, unknown>>(
       `/verification/${encodeURIComponent(verificationId)}/status`
     );
+
+    return normalizeVerificationResponse(response);
   }
 
   getResult(verificationId: string): Promise<VerificationResultResponse> {
@@ -55,15 +65,17 @@ export class VerificationsResource {
     );
   }
 
-  exchangeLogin(
+  exchangeAuthentication(
     verificationId: string,
     exchangeToken: string
-  ): Promise<VerificationLoginExchangeResponse> {
+  ): Promise<VerificationAuthenticationExchangeResponse> {
     if (!exchangeToken.trim()) {
-      throw new AidiError("AIDI exchangeToken is required for login exchange.");
+      throw new AidiError(
+        "AIDI exchangeToken is required for authentication exchange."
+      );
     }
 
-    return this.httpClient.request<VerificationLoginExchangeResponse>(
+    return this.httpClient.request<VerificationAuthenticationExchangeResponse>(
       `/verification/${encodeURIComponent(verificationId)}/login/exchange`,
       {
         method: "POST",
@@ -75,7 +87,7 @@ export class VerificationsResource {
 
 function normalizeCreateVerificationInput(
   input: CreateVerificationInput
-): CreateDirectVerificationRequest | CreateQrVerificationRequest {
+): CreateVerificationHttpRequest {
   if (!Array.isArray(input.requestedFields)) {
     throw new AidiError("AIDI requestedFields must be an array.");
   }
@@ -83,13 +95,15 @@ function normalizeCreateVerificationInput(
   const baseRequest = {
     type: input.type ?? "IDENTITY_VERIFY",
     requestedData: buildRequestedData(input.requestedFields),
-    intent: input.intent ?? "VERIFY",
+    intent: toHttpIntent(input.intent ?? "VERIFY"),
     message: input.message
   };
 
-  if (input.flowMode === "DIRECT") {
-    if (baseRequest.intent === "LOGIN") {
-      throw new AidiError("AIDI LOGIN intent only supports QR flow.");
+  if (input.initiation === "TARGETED") {
+    if (input.intent === "AUTHENTICATE") {
+      throw new AidiError(
+        "AIDI AUTHENTICATE intent only supports USER_INITIATED initiation."
+      );
     }
 
     if (
@@ -97,7 +111,7 @@ function normalizeCreateVerificationInput(
       !input.targetIdentifier.trim()
     ) {
       throw new AidiError(
-        "AIDI targetIdentifier is required when flowMode is DIRECT."
+        "AIDI targetIdentifier is required when initiation is TARGETED."
       );
     }
 
@@ -113,6 +127,46 @@ function normalizeCreateVerificationInput(
     flowMode: "QR",
     redirectUrl: input.redirectUrl,
     state: input.state
+  };
+}
+
+function toHttpIntent(intent: VerificationIntent) {
+  return intent === "AUTHENTICATE" ? "LOGIN" : "VERIFY";
+}
+
+function fromHttpIntent(intent: unknown): VerificationIntent | undefined {
+  if (intent === "LOGIN") {
+    return "AUTHENTICATE";
+  }
+  if (intent === "VERIFY") {
+    return "VERIFY";
+  }
+  return undefined;
+}
+
+function fromHttpFlowMode(flowMode: unknown): VerificationInitiation | undefined {
+  if (flowMode === "DIRECT") {
+    return "TARGETED";
+  }
+  if (flowMode === "QR") {
+    return "USER_INITIATED";
+  }
+  return undefined;
+}
+
+function normalizeVerificationResponse<T extends Record<string, unknown>>(
+  response: T
+): T & {
+  intent?: VerificationIntent;
+  initiation?: VerificationInitiation;
+} {
+  const intent = fromHttpIntent(response.intent);
+  const initiation = fromHttpFlowMode(response.flowMode);
+
+  return {
+    ...response,
+    ...(intent ? { intent } : {}),
+    ...(initiation ? { initiation } : {})
   };
 }
 

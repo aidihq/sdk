@@ -2,15 +2,11 @@ import type { RequestedData, RequestedFields } from "./common";
 
 export type VerificationType = "IDENTITY_VERIFY";
 
-export type VerificationFlowMode = "DIRECT" | "QR";
-export type VerificationIntent = "VERIFY" | "LOGIN";
+export type VerificationIntent = "VERIFY" | "AUTHENTICATE";
+export type VerificationInitiation = "TARGETED" | "USER_INITIATED";
 
-interface BaseCreateVerificationRequest {
-  type: VerificationType;
-  requestedData: RequestedData;
-  intent?: VerificationIntent;
-  message?: string;
-}
+export type HttpVerificationIntent = "VERIFY" | "LOGIN";
+export type HttpVerificationFlowMode = "DIRECT" | "QR";
 
 interface BaseCreateVerificationInput {
   type?: VerificationType;
@@ -19,37 +15,25 @@ interface BaseCreateVerificationInput {
   message?: string;
 }
 
-export interface CreateQrVerificationRequest
-  extends BaseCreateVerificationRequest {
-  flowMode: "QR";
+export interface CreateUserInitiatedVerificationInput
+  extends BaseCreateVerificationInput {
+  initiation?: "USER_INITIATED";
+  targetIdentifier?: never;
   redirectUrl?: string;
   state?: string;
 }
 
-export interface CreateDirectVerificationRequest
-  extends BaseCreateVerificationRequest {
-  flowMode: "DIRECT";
-  targetIdentifier: string;
-}
-
-export type CreateVerificationRequest =
-  | CreateQrVerificationRequest
-  | CreateDirectVerificationRequest;
-
-export interface CreateQrVerificationInput
+export interface CreateTargetedVerificationInput
   extends BaseCreateVerificationInput {
-  flowMode?: "QR";
-}
-
-export interface CreateVerificationDirectInput
-  extends BaseCreateVerificationInput {
-  flowMode?: "DIRECT";
+  initiation?: "TARGETED";
   targetIdentifier: string;
+  redirectUrl?: never;
+  state?: never;
 }
 
 export type CreateVerificationInput =
   | (BaseCreateVerificationInput & {
-      flowMode: "QR";
+      initiation: "USER_INITIATED";
       targetIdentifier?: never;
       redirectUrl?: string;
       state?: string;
@@ -58,14 +42,26 @@ export type CreateVerificationInput =
       type?: VerificationType;
       intent?: VerificationIntent;
       message?: string;
-      flowMode: "DIRECT";
+      initiation: "TARGETED";
       requestedFields: RequestedFields;
       targetIdentifier: string;
     };
 
+export interface CreateVerificationHttpRequest {
+  type: VerificationType;
+  requestedData: RequestedData;
+  intent: HttpVerificationIntent;
+  message?: string;
+  flowMode: HttpVerificationFlowMode;
+  targetIdentifier?: string;
+  redirectUrl?: string;
+  state?: string;
+}
+
 export interface CreateVerificationResponse extends Record<string, unknown> {
   id: string;
   intent?: VerificationIntent;
+  initiation?: VerificationInitiation;
   qrUrl?: string;
   deeplinkUrl?: string;
 }
@@ -74,7 +70,7 @@ export interface VerificationStatusResponse extends Record<string, unknown> {
   id?: string;
   status?: string;
   type?: VerificationType;
-  flowMode?: VerificationFlowMode;
+  initiation?: VerificationInitiation;
   intent?: VerificationIntent;
   exchangeReady?: boolean;
   resultAvailable?: boolean;
@@ -91,9 +87,11 @@ export interface VerificationResultResponse extends Record<string, unknown> {
   };
 }
 
-export interface VerificationLoginExchangeResponse extends Record<string, unknown> {
+export interface VerificationAuthenticationExchangeResponse
+  extends Record<string, unknown> {
   authenticated: true;
   subjectId: string;
   claims?: Partial<Record<string, string>>;
   state?: string | null;
+  redirectUrl?: string | null;
 }

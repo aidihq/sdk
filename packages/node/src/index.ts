@@ -3,21 +3,18 @@ export { createAidiClient } from "./client";
 export { AidiError, AidiHttpError, AidiTimeoutError } from "./http/errors";
 export type {
   AidiClientConfig,
-  CreateDirectVerificationRequest,
-  CreateQrVerificationInput,
-  CreateVerificationDirectInput,
-  CreateQrVerificationRequest,
+  CreateTargetedVerificationInput,
+  CreateUserInitiatedVerificationInput,
   CreateVerificationInput,
-  CreateVerificationRequest,
   CreateVerificationResponse,
   RequestedData,
   RequestedDataField,
   RequestedFields,
   RequestedFieldRequirement,
+  VerificationAuthenticationExchangeResponse,
+  VerificationInitiation,
   VerificationIntent,
-  VerificationLoginExchangeResponse,
   VerificationResultResponse,
-  VerificationFlowMode,
   VerificationStatusResponse,
   VerificationType
 } from "./types";
