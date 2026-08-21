@@ -49,7 +49,7 @@ export default function HomePage() {
       }}
     >
       <h1>AIDI Next.js Example</h1>
-      <p>Creates a QR verification through a server-side route handler.</p>
+      <p>Creates a user-initiated verification through a server-side route handler.</p>
 
       <button
         type="button"
@@ -60,7 +60,7 @@ export default function HomePage() {
           cursor: loading ? "wait" : "pointer"
         }}
       >
-        {loading ? "Creating..." : "Create QR verification"}
+        {loading ? "Creating..." : "Create user-initiated verification"}
       </button>
 
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}

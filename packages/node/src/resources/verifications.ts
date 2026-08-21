@@ -1,13 +1,12 @@
 import type {
-  CreateDirectVerificationRequest,
-  CreateQrVerificationInput,
-  CreateQrVerificationRequest,
-  CreateVerificationDirectInput,
+  CreateTargetedVerificationInput,
+  CreateUserInitiatedVerificationInput,
+  CreateVerificationHttpRequest,
   CreateVerificationInput,
   CreateVerificationResponse,
   RequestedData,
   RequestedFields,
-  VerificationLoginExchangeResponse,
+  VerificationAuthenticationExchangeResponse,
   VerificationResultResponse,
   VerificationStatusResponse
 } from "../types";
@@ -18,35 +17,44 @@ import type { HttpClient } from "../http/http-client";
 export class VerificationsResource {
   constructor(private readonly httpClient: HttpClient) {}
 
-  create(input: CreateVerificationInput): Promise<CreateVerificationResponse> {
-    return this.httpClient.request<CreateVerificationResponse>("/verification", {
-      method: "POST",
-      body: normalizeCreateVerificationInput(input)
-    });
+  async create(
+    input: CreateVerificationInput
+  ): Promise<CreateVerificationResponse> {
+    const response = await this.httpClient.request<Record<string, unknown>>(
+      "/verification",
+      {
+        method: "POST",
+        body: normalizeCreateVerificationInput(input)
+      }
+    );
+
+    return response as CreateVerificationResponse;
   }
 
-  createQr(
-    input: Omit<CreateQrVerificationInput, "flowMode">
+  createUserInitiated(
+    input: Omit<CreateUserInitiatedVerificationInput, "initiation">
   ): Promise<CreateVerificationResponse> {
     return this.create({
       ...input,
-      flowMode: "QR"
+      initiation: "USER_INITIATED"
     });
   }
 
-  createDirect(
-    input: CreateVerificationDirectInput
+  createTargeted(
+    input: CreateTargetedVerificationInput
   ): Promise<CreateVerificationResponse> {
     return this.create({
       ...input,
-      flowMode: "DIRECT"
+      initiation: "TARGETED"
     });
   }
 
-  getStatus(verificationId: string): Promise<VerificationStatusResponse> {
-    return this.httpClient.request<VerificationStatusResponse>(
+  async getStatus(verificationId: string): Promise<VerificationStatusResponse> {
+    const response = await this.httpClient.request<Record<string, unknown>>(
       `/verification/${encodeURIComponent(verificationId)}/status`
     );
+
+    return response as VerificationStatusResponse;
   }
 
   getResult(verificationId: string): Promise<VerificationResultResponse> {
@@ -55,16 +63,18 @@ export class VerificationsResource {
     );
   }
 
-  exchangeLogin(
+  exchangeAuthentication(
     verificationId: string,
     exchangeToken: string
-  ): Promise<VerificationLoginExchangeResponse> {
+  ): Promise<VerificationAuthenticationExchangeResponse> {
     if (!exchangeToken.trim()) {
-      throw new AidiError("AIDI exchangeToken is required for login exchange.");
+      throw new AidiError(
+        "AIDI exchangeToken is required for authentication exchange."
+      );
     }
 
-    return this.httpClient.request<VerificationLoginExchangeResponse>(
-      `/verification/${encodeURIComponent(verificationId)}/login/exchange`,
+    return this.httpClient.request<VerificationAuthenticationExchangeResponse>(
+      `/verification/${encodeURIComponent(verificationId)}/authentication/exchange`,
       {
         method: "POST",
         body: { exchangeToken }
@@ -75,7 +85,7 @@ export class VerificationsResource {
 
 function normalizeCreateVerificationInput(
   input: CreateVerificationInput
-): CreateDirectVerificationRequest | CreateQrVerificationRequest {
+): CreateVerificationHttpRequest {
   if (!Array.isArray(input.requestedFields)) {
     throw new AidiError("AIDI requestedFields must be an array.");
   }
@@ -87,9 +97,11 @@ function normalizeCreateVerificationInput(
     message: input.message
   };
 
-  if (input.flowMode === "DIRECT") {
-    if (baseRequest.intent === "LOGIN") {
-      throw new AidiError("AIDI LOGIN intent only supports QR flow.");
+  if (input.initiation === "TARGETED") {
+    if (input.intent === "AUTHENTICATE") {
+      throw new AidiError(
+        "AIDI AUTHENTICATE intent only supports USER_INITIATED initiation."
+      );
     }
 
     if (
@@ -97,20 +109,20 @@ function normalizeCreateVerificationInput(
       !input.targetIdentifier.trim()
     ) {
       throw new AidiError(
-        "AIDI targetIdentifier is required when flowMode is DIRECT."
+        "AIDI targetIdentifier is required when initiation is TARGETED."
       );
     }
 
     return {
       ...baseRequest,
-      flowMode: "DIRECT",
+      initiation: "TARGETED",
       targetIdentifier: input.targetIdentifier
     };
   }
 
   return {
     ...baseRequest,
-    flowMode: "QR",
+    initiation: "USER_INITIATED",
     redirectUrl: input.redirectUrl,
     state: input.state
   };

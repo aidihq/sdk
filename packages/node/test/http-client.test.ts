@@ -27,7 +27,7 @@ describe("HttpClient", () => {
         method: "POST",
         body: {
           type: "IDENTITY_VERIFY",
-          flowMode: "QR",
+          initiation: "USER_INITIATED",
           requestedData: {
             dni: "required"
           }
@@ -43,7 +43,7 @@ describe("HttpClient", () => {
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify({
       type: "IDENTITY_VERIFY",
-      flowMode: "QR",
+      initiation: "USER_INITIATED",
       requestedData: {
         dni: "required"
       }

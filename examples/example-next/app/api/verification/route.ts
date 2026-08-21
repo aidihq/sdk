@@ -14,7 +14,7 @@ export async function POST(): Promise<Response> {
   const aidi = createAidiClient({ apiKey });
 
   try {
-    const verification = await aidi.verifications.createQr({
+    const verification = await aidi.verifications.createUserInitiated({
       requestedFields: ["dni", "cuil", "firstName"]
     });
 

@@ -1,7 +1,7 @@
 {
   "name": "aidi-sdk",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packageManager": "pnpm@10.6.3",
   "engines": {
     "node": ">=18"
@@ -18,5 +18,15 @@
     "@types/node": "^22.13.14",
     "turbo": "^2.5.0",
     "typescript": "^5.8.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidihq/sdk.git",
+    "directory": "packages/node"
+  },
+  "homepage": "https://github.com/aidihq/sdk/tree/main/packages/node",
+  "bugs": {
+    "url": "https://github.com/aidihq/sdk/issues"
   }
 }
+
