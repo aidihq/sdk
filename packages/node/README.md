@@ -1,12 +1,10 @@
 # @aidihq/sdk
 
-![Version](https://img.shields.io/badge/version-0.2.0-black)
-![Node](https://img.shields.io/badge/node-%3E%3D18-339933)
-![Runtime](https://img.shields.io/badge/runtime-server--side-1f6feb)
+Official TypeScript SDK for integrating AIDI verification and authentication into server-side applications.
 
-Official AIDI SDK for Node.js.
+📚 **[Read the full AIDI documentation](https://docs.aidi.com.ar)**
 
-`@aidihq/sdk` provides a typed, server-side API for creating AIDI verification and authentication flows, checking their status, retrieving verification results, and exchanging authentication approvals using native `fetch`.
+Requires Node.js 18 or newer. Uses the native `fetch` API.
 
 ## Installation
 
@@ -16,48 +14,69 @@ npm install @aidihq/sdk
 
 ## Quick Start
 
+Create an AIDI client using your company API key:
+
+> Keep your API key on the server. Never expose it in browser or client-side code.
+
 ```ts
 import { createAidiClient } from "@aidihq/sdk";
 
 const aidi = createAidiClient({
   apiKey: process.env.AIDI_COMPANY_API_KEY!
 });
+```
 
+## Verification
+
+Create a user-initiated verification:
+
+```ts
 const verification = await aidi.verifications.createUserInitiated({
-  requestedFields: ["cuil"]
+  requestedFields: ["dni", "cuil", "firstName"]
 });
 
 console.log(verification.id);
 console.log(verification.qrUrl);
 ```
 
-## Model
+Use the returned `qrUrl` to let the user continue the verification flow in AIDI.
 
-AIDI separates what you want to do from how the user enters the flow.
+Check its status:
 
-**Intent**
+```ts
+const status = await aidi.verifications.getStatus(verification.id);
 
-- `VERIFY`: confirm identity or requested data.
-- `AUTHENTICATE`: authenticate the user in AIDI and return an assertion your backend can exchange before creating its own session.
+console.log(status.status);
+console.log(status.resultAvailable);
+```
 
-**Initiation**
+Once the verification is approved and its result is available:
 
-- `TARGETED`: your backend already knows which AIDI user should approve.
-- `USER_INITIATED`: the user starts from a QR, button, link, or deeplink.
+```ts
+const result = await aidi.verifications.getResult(verification.id);
 
-## USER_INITIATED Authentication
+console.log(result.result.identityConfirmed);
+console.log(result.result.subjectId);
+console.log(result.result.claims);
+```
 
-Use this when a user wants to enter your product with AIDI. For desktop, render `qrUrl` as a QR and keep the desktop page waiting for completion. For mobile, open the same `qrUrl` from a button or link.
+## Authentication
+
+Create a user-initiated authentication flow:
 
 ```ts
 const authentication = await aidi.verifications.createUserInitiated({
   intent: "AUTHENTICATE",
-  message: "Confirmá tu identidad para continuar",
+  message: "Confirm your identity to sign in",
   requestedFields: ["cuil"],
-  redirectUrl: "https://empresa.com/auth/callback",
-  state: "auth-attempt-id"
+  redirectUrl: "https://example.com/auth/callback",
+  state: "abc123"
 });
+```
 
+Poll the flow until the authentication exchange is ready:
+
+```ts
 const status = await aidi.verifications.getStatus(authentication.id);
 
 if (status.exchangeReady && status.exchangeToken) {
@@ -66,55 +85,48 @@ if (status.exchangeReady && status.exchangeToken) {
     status.exchangeToken
   );
 
+  console.log(result.authenticated);
   console.log(result.subjectId);
   console.log(result.claims);
-  console.log(result.state);
 }
 ```
 
-If `redirectUrl` is present, AIDI can return the user to that URL after consent with `verificationId`, `status`, and `state` in the query string. The actual authentication still completes server-side with `exchangeAuthentication()`.
+The exchange must happen on your backend. Your application is responsible for creating its own session after receiving a successful AIDI authentication result.
 
-## TARGETED Verification
+If `redirectUrl` is present, AIDI can return the user to that URL after consent with `verificationId`, `status`, and `state` in the query string. Authentication still completes server-side with `exchangeAuthentication()`.
 
-Use this when you already know which AIDI user should approve.
+## Targeted Verification
+
+Use a targeted verification when your backend already knows which AIDI user should approve the request:
 
 ```ts
 const verification = await aidi.verifications.createTargeted({
-  targetIdentifier: "20-12345678-9",
+  targetIdentifier: "bfcf1248-c1d0-4264-b8b8-e801c45ebed0",
   requestedFields: ["dni", "cuil", "firstName"]
 });
-
-const status = await aidi.verifications.getStatus(verification.id);
-
-if (status.resultAvailable) {
-  const result = await aidi.verifications.getResult(verification.id);
-  console.log(result);
-}
 ```
 
-## Requested Fields
+## Concepts
 
-The SDK currently accepts these values in `requestedFields`:
+AIDI separates what your application wants to do from how the user enters the flow.
 
-```ts
-["dni", "cuil", "firstName"]
-```
+### Intent
 
-Internally, the SDK translates `requestedFields` into the current AIDI HTTP payload shape.
+- `VERIFY`: verifies the user’s identity or requested information.
+- `AUTHENTICATE`: authenticates the user and exchanges their approval for an assertion your backend can use.
 
-## Public Methods
+### Initiation
 
-- `createAidiClient({ apiKey })`
-- `aidi.verifications.create({ initiation, intent, requestedFields, ... })`
-- `aidi.verifications.createUserInitiated({ intent, requestedFields, redirectUrl, state })`
-- `aidi.verifications.createTargeted({ targetIdentifier, requestedFields })`
-- `aidi.verifications.getStatus(verificationId)`
-- `aidi.verifications.getResult(verificationId)`
-- `aidi.verifications.exchangeAuthentication(verificationId, exchangeToken)`
+- `USER_INITIATED`: the user enters the flow through a QR code, link, button, or deeplink.
+- `TARGETED`: your backend already knows which AIDI user should receive the request.
 
-## Version
+### Requested fields
 
-Version `0.2.0` aligns the SDK with the backend `intent`/`initiation` contract and removes the old QR/DIRECT/LOGIN-facing helpers. See the repository changelog for full version history.
+The SDK currently supports:
+
+- `dni`
+- `cuil`
+- `firstName`
 
 ## Errors
 
@@ -123,8 +135,6 @@ The package exports typed errors:
 - `AidiError`
 - `AidiHttpError`
 - `AidiTimeoutError`
-
-Example:
 
 ```ts
 import { AidiHttpError, createAidiClient } from "@aidihq/sdk";
@@ -144,8 +154,16 @@ try {
 }
 ```
 
-## Security Notes
+## Documentation
 
-- Use this package only on the server side
-- Never expose `AIDI_COMPANY_API_KEY` to browsers or mobile clients
-- Rotate credentials if you suspect they were leaked
+For complete integration guides, API reference, and implementation details, visit the [AIDI documentation](https://docs.aidi.com.ar).
+
+## Security
+
+- Use the SDK only from trusted server-side environments.
+- Never expose `AIDI_COMPANY_API_KEY` in frontend code.
+- Do not log API keys, authentication exchange tokens, or sensitive verification results.
+
+## License
+
+MIT
