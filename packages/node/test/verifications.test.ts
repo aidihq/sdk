@@ -23,7 +23,7 @@ describe("verifications resource", () => {
     expect(response.id).toBe("ver_123");
 
     const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe("https://api.aidi.com/verification");
+    expect(url.toString()).toBe("https://api.aidi.com.ar/verification");
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       type: "IDENTITY_VERIFY",
@@ -69,7 +69,7 @@ describe("verifications resource", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toBe(
-      "https://api.aidi.com/verification/ver_123/status"
+      "https://api.aidi.com.ar/verification/ver_123/status"
     );
     expect(init.method).toBe("GET");
   });
@@ -263,10 +263,10 @@ describe("verifications resource", () => {
       RequestInit
     ];
     expect(resultUrl.toString()).toBe(
-      "https://api.aidi.com/verification/ver_123/result"
+      "https://api.aidi.com.ar/verification/ver_123/result"
     );
     expect(exchangeUrl.toString()).toBe(
-      "https://api.aidi.com/verification/ver_123/authentication/exchange"
+      "https://api.aidi.com.ar/verification/ver_123/authentication/exchange"
     );
     expect(JSON.parse(String(exchangeInit.body))).toEqual({
       exchangeToken: "ver_123.hash"
