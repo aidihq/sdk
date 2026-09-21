@@ -11,7 +11,7 @@
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@aidi/node": "workspace:*",
+    "@aidihq/sdk": "workspace:*",
     "dotenv": "^16.4.7"
   },
   "devDependencies": {
