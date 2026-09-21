@@ -39,7 +39,7 @@ describe("HttpClient", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe("https://api.aidi.com/verification");
+    expect(url.toString()).toBe("https://api.aidi.com.ar/verification");
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify({
       type: "IDENTITY_VERIFY",
