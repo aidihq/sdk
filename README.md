@@ -1,72 +1,120 @@
 # AIDI TypeScript SDK
 
-![Version](https://img.shields.io/badge/version-0.2.0-black)
-![Node](https://img.shields.io/badge/node-%3E%3D18-339933)
-![Package](https://img.shields.io/badge/npm-%40aidi%2Fnode-CB3837)
+Official TypeScript SDK for integrating AIDI verification and authentication into server-side applications.
 
-Official AIDI SDK for Node.js and TypeScript.
+📚 **[Read the full AIDI documentation](https://docs.aidi.com.ar)**
 
-This repository contains the publishable `@aidi/node` package, internal shared types, tests, and runnable examples for Node and Next.js.
+## Contents
 
-## Why this SDK
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Verification](#verification)
+- [Authentication](#authentication)
+- [Targeted Verification](#targeted-verification)
+- [Concepts](#concepts)
+  - [Intent](#intent)
+  - [Initiation](#initiation)
+  - [Requested fields](#requested-fields)
+- [Documentation](#documentation)
+- [Examples](#examples)
+- [Development](#development)
+- [Changelog](#changelog)
+- [Security](#security)
+- [License](#license)
 
-- Strong TypeScript types for the current AIDI verification contract
-- Clean server-side API built on native `fetch`
-- DX-first inputs with `requestedFields`
-- Internal HTTP client with centralized headers, timeouts, and typed errors
-- Monorepo ready for future packages without over-engineering the public API
+## Installation
+
+```bash
+pnpm add @aidihq/sdk
+```
+
+The SDK requires Node.js 18 or newer and uses the native `fetch` API.
 
 ## Quick Start
 
-Install dependencies in this repository:
+Create an AIDI client using your company API key:
 
-```bash
-pnpm install
-```
-
-Basic verify usage:
+> [!CAUTION]
+> Keep your API key on the server. Never expose it in browser or client-side code.
 
 ```ts
-import { createAidiClient } from "@aidi/node";
+import { createAidiClient } from "@aidihq/sdk";
 
 const aidi = createAidiClient({
   apiKey: process.env.AIDI_COMPANY_API_KEY!
 });
+```
 
+## Verification
+
+Create a user-initiated verification:
+
+```ts
 const verification = await aidi.verifications.createUserInitiated({
-  requestedFields: []
+  requestedFields: ["dni", "cuil", "firstName"]
 });
 
 console.log(verification.id);
 console.log(verification.qrUrl);
-
-const status = await aidi.verifications.getStatus(verification.id);
-console.log(status);
 ```
 
-Authentication usage:
+Use the returned `qrUrl` to let the user continue the verification flow in AIDI.
+
+Check its status:
+
+```ts
+const status = await aidi.verifications.getStatus(verification.id);
+
+console.log(status.status);
+console.log(status.resultAvailable);
+```
+
+Once the verification is approved and its result is available:
+
+```ts
+const result = await aidi.verifications.getResult(verification.id);
+
+console.log(result.result.identityConfirmed);
+console.log(result.result.subjectId);
+console.log(result.result.claims);
+```
+
+## Authentication
+
+Create a user-initiated authentication flow:
 
 ```ts
 const authentication = await aidi.verifications.createUserInitiated({
   intent: "AUTHENTICATE",
-  message: "Confirmá tu identidad para iniciar sesión",
+  message: "Confirm your identity to sign in",
   requestedFields: ["cuil"],
-  redirectUrl: "https://empresa.com/auth/callback",
+  redirectUrl: "https://example.com/auth/callback",
   state: "abc123"
 });
+```
 
-const authenticationStatus = await aidi.verifications.getStatus(authentication.id);
+Poll the flow until the authentication exchange is ready:
 
-if (authenticationStatus.exchangeReady && authenticationStatus.exchangeToken) {
+```ts
+const status = await aidi.verifications.getStatus(authentication.id);
+
+if (status.exchangeReady && status.exchangeToken) {
   const result = await aidi.verifications.exchangeAuthentication(
     authentication.id,
-    authenticationStatus.exchangeToken
+    status.exchangeToken
   );
-  console.log(result);
+
+  console.log(result.authenticated);
+  console.log(result.subjectId);
+  console.log(result.claims);
 }
 ```
 
-Targeted verification:
+The exchange must happen on your backend. Your application is responsible for creating its own session after receiving a successful AIDI authentication result.
+
+## Targeted Verification
+
+Use a targeted verification when your backend already knows which AIDI user should approve the request:
 
 ```ts
 const verification = await aidi.verifications.createTargeted({
@@ -75,76 +123,71 @@ const verification = await aidi.verifications.createTargeted({
 });
 ```
 
-## Public API
+## Concepts
 
-- `createAidiClient({ apiKey })`
-- `aidi.verifications.create({ initiation, intent, requestedFields, ... })`
-- `aidi.verifications.createUserInitiated({ intent, requestedFields, redirectUrl, state })`
-- `aidi.verifications.createTargeted({ targetIdentifier, requestedFields })`
-- `aidi.verifications.getStatus(verificationId)`
-- `aidi.verifications.getResult(verificationId)`
-- `aidi.verifications.exchangeAuthentication(verificationId, exchangeToken)`
+AIDI separates what your application wants to do from how the user enters the flow.
 
-## Changelog
+### Intent
 
-See [CHANGELOG.md](./CHANGELOG.md) for version history. Version `0.2.0` renames the verification API around `intent` and `initiation` and removes the old QR/DIRECT/LOGIN-facing helpers.
+- `VERIFY`: verifies the user’s identity or requested information.
+- `AUTHENTICATE`: authenticates the user and exchanges their approval for an assertion your backend can use.
 
-## Repository Layout
+### Initiation
 
-```txt
-examples/
-  example-node/   Runnable Node example
-  example-next/   Runnable Next.js example
-packages/
-  node/           Publishable SDK package: @aidi/node
-  types/          Internal shared types for the monorepo
+- `USER_INITIATED`: the user enters the flow through a QR code, link, button, or deeplink.
+- `TARGETED`: your backend already knows which AIDI user should receive the request.
+
+### Requested fields
+
+The SDK currently supports:
+
+- `dni`
+- `cuil`
+- `firstName`
+
+## Documentation
+
+For complete integration guides, API reference, and implementation details, visit the [AIDI documentation](https://docs.aidi.com.ar).
+
+## Examples
+
+Runnable integrations are available in the [examples](./examples) directory:
+
+- [example-node](./examples/example-node): Node.js server-side integration.
+- [example-next](./examples/example-next): Next.js route handler and verification UI.
+
+## Development
+
+Install the workspace dependencies:
+
+```bash
+pnpm install
 ```
 
-## Scripts
+Run the checks:
 
 ```bash
 pnpm build
 pnpm test
 pnpm lint
+```
+
+Start the workspace in development mode:
+
+```bash
 pnpm dev
-pnpm clean
 ```
 
-## Examples
+## Changelog
 
-### Node Example
-
-Create `examples/example-node/.env` from `examples/example-node/.env.example`:
-
-```env
-AIDI_COMPANY_API_KEY=your_company_api_key
-```
-
-Run it:
-
-```bash
-pnpm --filter example-node dev
-```
-
-This example creates a user-initiated verification and then fetches its status.
-
-### Next.js Example
-
-Create `examples/example-next/.env.local` from `examples/example-next/.env.local.example`:
-
-```env
-AIDI_COMPANY_API_KEY=your_company_api_key
-```
-
-Run it:
-
-```bash
-pnpm --filter example-next dev
-```
-
-This example exposes a server-side route handler that calls AIDI and a page that displays the returned `qrUrl`.
+See [CHANGELOG.md](./CHANGELOG.md) for the version history.
 
 ## Security
 
-- This SDK is server-side first
-- Never expose `AIDI_COMPANY_API_KEY` in frontend code
+- Use the SDK only from trusted server-side environments.
+- Never expose `AIDI_COMPANY_API_KEY` in frontend code.
+- Do not log API keys, authentication exchange tokens, or sensitive verification results.
+
+## License
+
+MIT

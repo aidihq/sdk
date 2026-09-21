@@ -1,5 +1,5 @@
 {
-  "name": "@aidi/node",
+  "name": "@aidihq/sdk",
   "version": "0.2.0",
   "private": false,
   "description": "Official AIDI SDK for Node.js.",

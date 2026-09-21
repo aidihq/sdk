@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "node -e \"require('node:fs').rmSync('.turbo',{recursive:true,force:true})\" && turbo run clean",
-    "release:check": "pnpm --filter @aidi/node release:check"
+    "release:check": "pnpm --filter @aidihq/sdk release:check"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

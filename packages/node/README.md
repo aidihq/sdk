@@ -1,4 +1,4 @@
-# @aidi/node
+# @aidihq/sdk
 
 ![Version](https://img.shields.io/badge/version-0.2.0-black)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-339933)
@@ -6,18 +6,18 @@
 
 Official AIDI SDK for Node.js.
 
-`@aidi/node` provides a typed, server-side API for creating AIDI verification and authentication flows, checking their status, retrieving verification results, and exchanging authentication approvals using native `fetch`.
+`@aidihq/sdk` provides a typed, server-side API for creating AIDI verification and authentication flows, checking their status, retrieving verification results, and exchanging authentication approvals using native `fetch`.
 
 ## Installation
 
 ```bash
-npm install @aidi/node
+npm install @aidihq/sdk
 ```
 
 ## Quick Start
 
 ```ts
-import { createAidiClient } from "@aidi/node";
+import { createAidiClient } from "@aidihq/sdk";
 
 const aidi = createAidiClient({
   apiKey: process.env.AIDI_COMPANY_API_KEY!
@@ -127,7 +127,7 @@ The package exports typed errors:
 Example:
 
 ```ts
-import { AidiHttpError, createAidiClient } from "@aidi/node";
+import { AidiHttpError, createAidiClient } from "@aidihq/sdk";
 
 const aidi = createAidiClient({
   apiKey: process.env.AIDI_COMPANY_API_KEY!

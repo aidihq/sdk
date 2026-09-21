@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { createAidiClient } from "@aidi/node";
+import { createAidiClient } from "@aidihq/sdk";
 
 const apiKey = process.env.AIDI_COMPANY_API_KEY;
 

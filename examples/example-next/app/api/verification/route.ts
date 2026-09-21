@@ -1,4 +1,4 @@
-import { createAidiClient } from "@aidi/node";
+import { createAidiClient } from "@aidihq/sdk";
 import { NextResponse } from "next/server";
 
 export async function POST(): Promise<Response> {
